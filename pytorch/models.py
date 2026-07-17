@@ -182,7 +182,7 @@ class Cnn14(nn.Module):
         init_layer(self.fc1)
         init_layer(self.fc_audioset)
  
-    def forward(self, input, mixup_lambda=None):
+    def forward(self, input, mixup_lambda=None, return_features=False):
         """
         Input: (batch_size, data_length)"""
 
@@ -213,6 +213,7 @@ class Cnn14(nn.Module):
         x = self.conv_block6(x, pool_size=(1, 1), pool_type='avg')
         x = F.dropout(x, p=0.2, training=self.training)
         x = torch.mean(x, dim=3)
+        feature_map = x
         
         (x1, _) = torch.max(x, dim=2)
         x2 = torch.mean(x, dim=2)
@@ -222,7 +223,13 @@ class Cnn14(nn.Module):
         embedding = F.dropout(x, p=0.5, training=self.training)
         clipwise_output = torch.sigmoid(self.fc_audioset(x))
         
-        output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+        output_dict = {
+            'clipwise_output': clipwise_output,
+            'embedding': embedding
+        }
+
+        if return_features:
+            output_dict['feature_map'] = feature_map
 
         return output_dict
 
