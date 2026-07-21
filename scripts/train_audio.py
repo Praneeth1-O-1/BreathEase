@@ -160,7 +160,8 @@ optimizer = torch.optim.AdamW(
 # Training
 # ---------------------------------------------------
 num_epochs = 20
-best_f1 = -1.0
+# Do not save a checkpoint that never predicts the Disease class.
+best_f1 = 0.0
 
 print("\nStarting Training...\n")
 
@@ -190,10 +191,15 @@ for epoch in range(num_epochs):
         loss.backward()
 
         # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(
+        # This returns the total norm *before* clipping.  Log it to determine
+        # whether global clipping is suppressing the classifier gradients.
+        grad_norm = torch.nn.utils.clip_grad_norm_(
             model.parameters(),
             max_norm=1.0
         )
+
+        if batch_idx % 20 == 0:
+            print(f"Pre-clip gradient norm: {grad_norm.item():.2f}")
 
         optimizer.step()
 
