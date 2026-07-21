@@ -9,7 +9,7 @@ from models import Cnn14
 
 class AudioModel(nn.Module):
 
-    def __init__(self, checkpoint_path=None):
+    def __init__(self, checkpoint_path=None, freeze_backbone=False):
         super().__init__()
 
         # -------------------------------------------------
@@ -36,10 +36,10 @@ class AudioModel(nn.Module):
             self.backbone.load_state_dict(checkpoint["model"])
 
         # -------------------------------------------------
-        # Freeze CNN14
+        # Optionally freeze CNN14 for a stable head-only fine-tuning baseline.
         # -------------------------------------------------
         for param in self.backbone.parameters():
-            param.requires_grad = True
+            param.requires_grad = not freeze_backbone
 
         # -------------------------------------------------
         # Temporal Attention
@@ -111,4 +111,3 @@ class AudioModel(nn.Module):
         logits = self.classifier(x)
 
         return logits, None
-

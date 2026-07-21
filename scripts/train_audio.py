@@ -22,18 +22,6 @@ device = torch.device(
 print(f"\nUsing device : {device}")
 
 
-def set_batchnorm_eval(module):
-    """Keep pretrained BatchNorm running statistics stable for tiny batches.
-
-    Calling ``model.train()`` would otherwise update every CNN14 BatchNorm
-    buffer from batches of four samples.  The affine BatchNorm parameters still
-    receive gradients; only train-time batch statistics are disabled.
-    """
-    for child in module.modules():
-        if isinstance(child, nn.modules.batchnorm._BatchNorm):
-            child.eval()
-
-
 # ---------------------------------------------------
 # Kaggle Detection
 # ---------------------------------------------------
@@ -112,7 +100,8 @@ val_loader = DataLoader(
 # Model
 # ---------------------------------------------------
 model = AudioModel(
-    checkpoint_path=CHECKPOINT_PATH
+    checkpoint_path=CHECKPOINT_PATH,
+    freeze_backbone=True
 )
 
 model = model.to(device)
@@ -137,21 +126,14 @@ criterion = nn.CrossEntropyLoss(
 # ---------------------------------------------------
 # Optimizer
 # ---------------------------------------------------
+head_parameters = (
+    list(model.projection.parameters()) +
+    list(model.residual.parameters()) +
+    list(model.classifier.parameters())
+)
+
 optimizer = torch.optim.AdamW(
-    [
-        {
-            "params": model.backbone.parameters(),
-            "lr": 1e-5
-        },
-        {
-            "params": (
-                list(model.projection.parameters()) +
-                list(model.residual.parameters()) +
-                list(model.classifier.parameters())
-            ),
-            "lr": 3e-4
-        }
-    ],
+    [{"params": head_parameters, "lr": 3e-4}],
     weight_decay=1e-4
 )
 
@@ -168,7 +150,10 @@ print("\nStarting Training...\n")
 for epoch in range(num_epochs):
 
     model.train()
-    set_batchnorm_eval(model.backbone)
+    # A frozen feature extractor must also be in eval mode: this disables its
+    # SpecAugment and dropout, so train and validation receive identical CNN14
+    # features. The classification head remains in train mode.
+    model.backbone.eval()
 
     train_preds = []
     train_labels = []
