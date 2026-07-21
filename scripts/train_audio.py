@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
@@ -21,16 +23,48 @@ print(f"\nUsing device : {device}")
 
 
 # ---------------------------------------------------
+# Kaggle Detection
+# ---------------------------------------------------
+IS_KAGGLE = os.path.exists("/kaggle")
+
+if IS_KAGGLE:
+
+    AUDIO_DIR = (
+        "/kaggle/input/datasets/pr4neeth/"
+        "coughvid/coughvid_v3/"
+        "coughvid_v3/"
+        "public_dataset_v3/"
+        "coughvid_20211012"
+    )
+
+    CHECKPOINT_PATH = (
+        "/kaggle/input/datasets/pr4neeth/"
+        "cnn14-pth/"
+        "Cnn14_mAP0.431.pth"
+    )
+
+else:
+
+    AUDIO_DIR = (
+        "data/raw/coughvid_v3/"
+        "public_dataset_v3/"
+        "coughvid_20211012"
+    )
+
+    CHECKPOINT_PATH = "Cnn14_mAP=0.431.pth"
+
+
+# ---------------------------------------------------
 # Dataset
 # ---------------------------------------------------
 train_dataset = RespiratoryDataset(
     csv_file="metadata/train.csv",
-    audio_dir="data/raw/coughvid_v3/public_dataset_v3/coughvid_20211012"
+    audio_dir=AUDIO_DIR
 )
 
 val_dataset = RespiratoryDataset(
     csv_file="metadata/val.csv",
-    audio_dir="data/raw/coughvid_v3/public_dataset_v3/coughvid_20211012"
+    audio_dir=AUDIO_DIR
 )
 
 
@@ -66,7 +100,7 @@ val_loader = DataLoader(
 # Model
 # ---------------------------------------------------
 model = AudioModel(
-    checkpoint_path="Cnn14_mAP=0.431.pth"
+    checkpoint_path=CHECKPOINT_PATH
 )
 
 model = model.to(device)
@@ -88,7 +122,6 @@ print("Class Weights:", weights)
 criterion = nn.CrossEntropyLoss(
     weight=weights
 )
-
 # ---------------------------------------------------
 # Optimizer
 # ---------------------------------------------------
@@ -228,5 +261,3 @@ for epoch in range(num_epochs):
         )
 
         print("\nBest model saved.")
-
-print("\nTraining Complete.")
