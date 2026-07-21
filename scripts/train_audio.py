@@ -2,7 +2,7 @@ import os
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 from dataset import RespiratoryDataset
 from audio_model import AudioModel
@@ -68,12 +68,6 @@ val_dataset = RespiratoryDataset(
 )
 
 
-# ---------------------------------------------------
-# Small subset for testing
-# ---------------------------------------------------
-train_dataset = Subset(train_dataset, range(2000))
-val_dataset = Subset(val_dataset, range(500))
-
 print(f"Train Samples : {len(train_dataset)}")
 print(f"Validation Samples : {len(val_dataset)}")
 
@@ -83,14 +77,14 @@ print(f"Validation Samples : {len(val_dataset)}")
 # ---------------------------------------------------
 train_loader = DataLoader(
     train_dataset,
-    batch_size=4,
+    batch_size=16,
     shuffle=True,
     num_workers=0
 )
 
 val_loader = DataLoader(
     val_dataset,
-    batch_size=4,
+    batch_size=16,
     shuffle=False,
     num_workers=0
 )
@@ -231,7 +225,21 @@ for epoch in range(num_epochs):
     # ---------------------------------------------------
     # Validation
     # ---------------------------------------------------
-    val_loss, val_acc, val_balanced_acc, precision, recall, f1, cm = evaluate(
+    (
+        val_loss,
+        val_acc,
+        val_balanced_acc,
+        precision,
+        recall,
+        f1,
+        specificity,
+        roc_auc,
+        pr_auc,
+        disease_prediction_rate,
+        best_threshold,
+        best_threshold_f1,
+        cm,
+    ) = evaluate(
         model,
         val_loader,
         criterion,
@@ -246,6 +254,14 @@ for epoch in range(num_epochs):
     print(f"Precision : {precision:.4f}")
     print(f"Recall    : {recall:.4f}")
     print(f"F1 Score  : {f1:.4f}")
+    print(f"Specificity : {specificity:.4f}")
+    print(f"ROC-AUC     : {roc_auc:.4f}")
+    print(f"PR-AUC      : {pr_auc:.4f}")
+    print(f"Disease prediction rate : {disease_prediction_rate:.4f}")
+    print(
+        f"Best validation F1 threshold : {best_threshold:.4f} "
+        f"(F1={best_threshold_f1:.4f})"
+    )
 
     print("\nConfusion Matrix")
     print(cm)
@@ -255,16 +271,17 @@ for epoch in range(num_epochs):
     # ---------------------------------------------------
     # Accuracy alone rewards the 66% Healthy majority baseline.  Disease F1
     # reflects the clinical class we need the checkpoint to retain.
-    if f1 > best_f1:
+    if best_threshold_f1 > best_f1:
 
-        best_f1 = f1
+        best_f1 = best_threshold_f1
 
         save_checkpoint(
             model,
             optimizer,
             epoch,
             best_f1,
-            "audio_model_stage1.pth"
+            "audio_model_stage1.pth",
+            decision_threshold=best_threshold,
         )
 
         print("\nBest model saved.")

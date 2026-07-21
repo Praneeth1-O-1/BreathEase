@@ -7,12 +7,20 @@ def accuracy(logits, labels):
     return correct / len(labels)
 
 
-def save_checkpoint(model, optimizer, epoch, best_val_f1, path):
+def save_checkpoint(
+    model,
+    optimizer,
+    epoch,
+    best_val_f1,
+    path,
+    decision_threshold=0.5,
+):
     torch.save({
         "epoch": epoch,
         "model": model.state_dict(),
         "optimizer": optimizer.state_dict(),
-        "best_val_f1": best_val_f1
+        "best_val_f1": best_val_f1,
+        "decision_threshold": decision_threshold,
     }, path)
 
 
