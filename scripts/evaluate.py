@@ -3,6 +3,7 @@ import torch.nn.functional as F
 
 from sklearn.metrics import (
     accuracy_score,
+    balanced_accuracy_score,
     precision_score,
     recall_score,
     f1_score,
@@ -66,6 +67,10 @@ def evaluate(model, loader, criterion, device):
 
     acc = accuracy_score(all_labels, all_preds)
 
+    # Unlike ordinary accuracy, this gives equal importance to Healthy and
+    # Disease, so an all-Healthy classifier cannot look deceptively strong.
+    balanced_acc = balanced_accuracy_score(all_labels, all_preds)
+
     precision = precision_score(
         all_labels,
         all_preds,
@@ -89,6 +94,7 @@ def evaluate(model, loader, criterion, device):
     return (
         avg_loss,
         acc,
+        balanced_acc,
         precision,
         recall,
         f1,

@@ -22,6 +22,18 @@ device = torch.device(
 print(f"\nUsing device : {device}")
 
 
+def set_batchnorm_eval(module):
+    """Keep pretrained BatchNorm running statistics stable for tiny batches.
+
+    Calling ``model.train()`` would otherwise update every CNN14 BatchNorm
+    buffer from batches of four samples.  The affine BatchNorm parameters still
+    receive gradients; only train-time batch statistics are disabled.
+    """
+    for child in module.modules():
+        if isinstance(child, nn.modules.batchnorm._BatchNorm):
+            child.eval()
+
+
 # ---------------------------------------------------
 # Kaggle Detection
 # ---------------------------------------------------
@@ -148,13 +160,14 @@ optimizer = torch.optim.AdamW(
 # Training
 # ---------------------------------------------------
 num_epochs = 20
-best_acc = 0.0
+best_f1 = -1.0
 
 print("\nStarting Training...\n")
 
 for epoch in range(num_epochs):
 
     model.train()
+    set_batchnorm_eval(model.backbone)
 
     train_preds = []
     train_labels = []
@@ -227,7 +240,7 @@ for epoch in range(num_epochs):
     # ---------------------------------------------------
     # Validation
     # ---------------------------------------------------
-    val_loss, val_acc, precision, recall, f1, cm = evaluate(
+    val_loss, val_acc, val_balanced_acc, precision, recall, f1, cm = evaluate(
         model,
         val_loader,
         criterion,
@@ -238,6 +251,7 @@ for epoch in range(num_epochs):
     print("-------------------------")
     print(f"Loss      : {val_loss:.4f}")
     print(f"Accuracy  : {val_acc:.4f}")
+    print(f"Balanced Accuracy : {val_balanced_acc:.4f}")
     print(f"Precision : {precision:.4f}")
     print(f"Recall    : {recall:.4f}")
     print(f"F1 Score  : {f1:.4f}")
@@ -248,15 +262,17 @@ for epoch in range(num_epochs):
     # ---------------------------------------------------
     # Save Best Model
     # ---------------------------------------------------
-    if val_acc > best_acc:
+    # Accuracy alone rewards the 66% Healthy majority baseline.  Disease F1
+    # reflects the clinical class we need the checkpoint to retain.
+    if f1 > best_f1:
 
-        best_acc = val_acc
+        best_f1 = f1
 
         save_checkpoint(
             model,
             optimizer,
             epoch,
-            best_acc,
+            best_f1,
             "audio_model_stage1.pth"
         )
 
