@@ -11,7 +11,7 @@ def save_checkpoint(
     model,
     optimizer,
     epoch,
-    best_val_f1,
+    best_val_pr_auc,
     path,
     decision_threshold=0.5,
 ):
@@ -19,7 +19,7 @@ def save_checkpoint(
         "epoch": epoch,
         "model": model.state_dict(),
         "optimizer": optimizer.state_dict(),
-        "best_val_f1": best_val_f1,
+        "best_val_pr_auc": best_val_pr_auc,
         "decision_threshold": decision_threshold,
     }, path)
 
@@ -32,5 +32,8 @@ def load_checkpoint(model, optimizer, path, device):
 
     return (
         checkpoint["epoch"],
-        checkpoint.get("best_val_f1", checkpoint.get("best_val_acc"))
+        checkpoint.get(
+            "best_val_pr_auc",
+            checkpoint.get("best_val_f1", checkpoint.get("best_val_acc")),
+        )
     )

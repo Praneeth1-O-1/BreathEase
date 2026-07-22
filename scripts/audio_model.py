@@ -9,7 +9,12 @@ from models import Cnn14
 
 class AudioModel(nn.Module):
 
-    def __init__(self, checkpoint_path=None, freeze_backbone=False):
+    def __init__(
+        self,
+        checkpoint_path=None,
+        freeze_backbone=False,
+        unfreeze_final_block=False,
+    ):
         super().__init__()
 
         # -------------------------------------------------
@@ -40,6 +45,14 @@ class AudioModel(nn.Module):
         # -------------------------------------------------
         for param in self.backbone.parameters():
             param.requires_grad = not freeze_backbone
+
+        if unfreeze_final_block:
+            if not freeze_backbone:
+                raise ValueError(
+                    "unfreeze_final_block requires freeze_backbone=True"
+                )
+            for param in self.backbone.conv_block6.parameters():
+                param.requires_grad = True
 
         # -------------------------------------------------
         # Temporal Attention

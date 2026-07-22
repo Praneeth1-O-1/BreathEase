@@ -15,7 +15,7 @@ from sklearn.metrics import (
 )
 
 
-def evaluate(model, loader, criterion, device):
+def evaluate(model, loader, criterion, device, optimize_threshold=False):
 
     model.eval()
 
@@ -107,17 +107,20 @@ def evaluate(model, loader, criterion, device):
     roc_auc = roc_auc_score(labels_np, disease_probs_np)
     pr_auc = average_precision_score(labels_np, disease_probs_np)
 
-    precision_curve, recall_curve, thresholds = precision_recall_curve(
-        labels_np,
-        disease_probs_np,
-    )
-    threshold_f1 = (
-        2 * precision_curve[:-1] * recall_curve[:-1]
-        / (precision_curve[:-1] + recall_curve[:-1] + 1e-12)
-    )
-    threshold_index = int(np.argmax(threshold_f1))
-    best_threshold = float(thresholds[threshold_index])
-    best_threshold_f1 = float(threshold_f1[threshold_index])
+    best_threshold = None
+    best_threshold_f1 = None
+    if optimize_threshold:
+        precision_curve, recall_curve, thresholds = precision_recall_curve(
+            labels_np,
+            disease_probs_np,
+        )
+        threshold_f1 = (
+            2 * precision_curve[:-1] * recall_curve[:-1]
+            / (precision_curve[:-1] + recall_curve[:-1] + 1e-12)
+        )
+        threshold_index = int(np.argmax(threshold_f1))
+        best_threshold = float(thresholds[threshold_index])
+        best_threshold_f1 = float(threshold_f1[threshold_index])
 
     return (
         avg_loss,
