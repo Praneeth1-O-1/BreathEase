@@ -30,15 +30,16 @@ IS_KAGGLE = os.path.exists("/kaggle/working")
 # ============================================================
 
 if IS_KAGGLE:
-    # Kaggle: full NIH ChestX-ray14
-    KAGGLE_DATASET_NAME = "nih-chest-xrays/data"
-    DATA_DIR   = f"/kaggle/input/{KAGGLE_DATASET_NAME}"
-    CSV_FILE   = os.path.join(DATA_DIR, "Data_Entry_2017.csv")
+    DATA_DIR = "/kaggle/input/datasets/organizations/nih-chest-xrays/data"
+
+    CSV_FILE = os.path.join(DATA_DIR, "Data_Entry_2017.csv")
+
     IMAGE_DIRS = [
         os.path.join(DATA_DIR, f"images_{i:03d}", "images")
         for i in range(1, 13)
     ]
-    SPLIT_DIR  = "/kaggle/working/splits"
+
+    SPLIT_DIR = "/kaggle/working/splits"
     OUTPUT_DIR = "/kaggle/working/outputs"
 
 else:
